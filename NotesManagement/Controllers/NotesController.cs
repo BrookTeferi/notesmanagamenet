@@ -27,11 +27,16 @@ namespace NotesManagement.Controllers
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (!Guid.TryParse(userIdClaim, out var userId))
-                return Unauthorized();
+                return Unauthorized(new { error = "You are not authenticated" });
 
             var notes = await _context.Notes
                 .Where(n => n.UserId == userId)
                 .ToListAsync();
+
+            if (!notes.Any())
+            {
+                return Ok(new { message = "You have no notes yet." });
+            }
 
             var response = notes.Select(n => new NoteResponseDto
             {
@@ -51,12 +56,12 @@ namespace NotesManagement.Controllers
         public async Task<IActionResult> CreateNote([FromBody] NoteDto dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+                return BadRequest(new { error = "Invalid request data", details = ModelState });
 
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (!Guid.TryParse(userIdClaim, out var userId))
-                return Unauthorized();
+                return Unauthorized(new { error = "You are not authenticated" });
 
             var note = new Note
             {
@@ -87,25 +92,20 @@ namespace NotesManagement.Controllers
         public async Task<IActionResult> GetNoteById(Guid id)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            Console.WriteLine($"User ID Claim: {userIdClaim}");
 
             if (!Guid.TryParse(userIdClaim, out var userId))
-            {
                 return Unauthorized(new { error = "You are not authenticated" });
-            }
 
             var note = await _context.Notes
                 .Where(n => n.UserId == userId && n.Id == id)
                 .FirstOrDefaultAsync();
 
-            Console.WriteLine($"Looking for Note ID: {id}, User ID: {userId}");
-
             if (note == null)
             {
-                return NotFound(new { error = $"No note found with ID: {userId}" });
+                return NotFound(new { error = $"No note found with ID: {id}" });
             }
 
-            var response = new NoteResponseDto
+            return Ok(new NoteResponseDto
             {
                 Id = note.Id,
                 Title = note.Title,
@@ -113,9 +113,58 @@ namespace NotesManagement.Controllers
                 CreatedAt = note.CreatedAt,
                 UpdatedAt = note.UpdatedAt,
                 UserId = note.UserId
-            };
+            });
+        }
 
-            return Ok(response);
+        // PUT /api/notes/{id}
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> UpdateNote(Guid id, [FromBody] UpdateNoteDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(new { error = "Invalid request data", details = ModelState });
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(userIdClaim, out var userId))
+                return Unauthorized(new { error = "You are not authenticated" });
+
+            var note = await _context.Notes
+                .Where(n => n.UserId == userId && n.Id == id)
+                .FirstOrDefaultAsync();
+
+            if (note == null)
+                return NotFound(new { error = $"Note with ID: {id} not found." });
+
+            note.Title = dto.Title;
+            note.Content = dto.Content;
+            note.UpdatedAt = DateTime.UtcNow;
+
+            _context.Notes.Update(note);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Note updated successfully", noteId = id });
+        }
+
+        // DELETE /api/notes/{id}
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> DeleteNote(Guid id)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!Guid.TryParse(userIdClaim, out var userId))
+                return Unauthorized(new { error = "You are not authenticated" });
+
+            var note = await _context.Notes
+                .Where(n => n.UserId == userId && n.Id == id)
+                .FirstOrDefaultAsync();
+
+            if (note == null)
+                return NotFound(new { error = $"Note with ID: {id} not found." });
+
+            _context.Notes.Remove(note);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Note deleted successfully", noteId = id });
         }
     }
 }

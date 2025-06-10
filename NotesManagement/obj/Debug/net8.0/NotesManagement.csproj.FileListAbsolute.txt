@@ -271,3 +271,4 @@ C:\Users\user\source\repos\NotesManagement\NotesManagement\obj\Debug\net8.0\refi
 C:\Users\user\source\repos\NotesManagement\NotesManagement\obj\Debug\net8.0\NotesManagement.pdb
 C:\Users\user\source\repos\NotesManagement\NotesManagement\obj\Debug\net8.0\NotesManagement.genruntimeconfig.cache
 C:\Users\user\source\repos\NotesManagement\NotesManagement\obj\Debug\net8.0\ref\NotesManagement.dll
+C:\Users\user\source\repos\NotesManagement\NotesManagement\obj\Debug\net8.0\NotesManagement.sourcelink.json
